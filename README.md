@@ -60,6 +60,7 @@ DB_PORT=3306
 DB_DATABASE=travel_management_testing
 DB_USERNAME=travel_user
 DB_PASSWORD=travel_password
+```
 
 ### Passo 3: Iniciar com Docker
 
