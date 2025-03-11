@@ -46,11 +46,9 @@ class Handler extends ExceptionHandler
      */
     public function register(): void
     {
-        $this->reportable(function (Throwable $e) {
-            //
+        $this->reportable(function (Throwable $e) {            
         });
         
-        // Tratamento personalizado para exceções de validação em APIs
         $this->renderable(function (ValidationException $e, $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
@@ -60,7 +58,6 @@ class Handler extends ExceptionHandler
             }
         });
         
-        // Tratamento específico para RouteNotFoundException
         $this->renderable(function (RouteNotFoundException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
@@ -70,7 +67,6 @@ class Handler extends ExceptionHandler
             }
         });
         
-        // Tratamento para AuthenticationException
         $this->renderable(function (AuthenticationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
@@ -80,7 +76,6 @@ class Handler extends ExceptionHandler
             }
         });
         
-        // Tratamento para exceções de autorização
         $this->renderable(function (AuthorizationException $e, $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
@@ -89,7 +84,6 @@ class Handler extends ExceptionHandler
             }
         });
         
-        // Tratamento para exceções personalizadas
         $this->renderable(function (UnauthorizedActionException $e, $request) {
             if ($request->expectsJson()) {
                 return response()->json([

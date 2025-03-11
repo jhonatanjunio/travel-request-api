@@ -9,7 +9,7 @@ services:
     volumes:
       - ./:/var/www
     networks:
-      - teste_tecnico_network
+      - travel_request_network
 
   nginx:
     image: nginx:alpine
@@ -21,7 +21,7 @@ services:
       - ./:/var/www
       - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
     networks:
-      - teste_tecnico_network
+      - travel_request_network
 
   db:
     image: mysql:8.0
@@ -38,7 +38,7 @@ services:
     ports:
       - "3307:3306"
     networks:
-      - teste_tecnico_network
+      - travel_request_network
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -49,12 +49,12 @@ services:
     ports:
       - "8080:80"
     networks:
-      - teste_tecnico_network
+      - travel_request_network
     depends_on:
       - db
 
 networks:
-  teste_tecnico_network:
+  travel_request_network:
     driver: bridge
 
 volumes:

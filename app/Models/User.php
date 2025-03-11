@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -58,8 +57,6 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        // Implemente a lógica de verificação de administrador aqui
-        // Por exemplo, verificar um campo 'role' ou 'is_admin'
         return $this->role === 'admin' || $this->is_admin === true;
     }
 }

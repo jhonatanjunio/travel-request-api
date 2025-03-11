@@ -11,16 +11,12 @@ class LogApiRequests
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Registrar início da requisição
         $startTime = microtime(true);
 
-        // Processar a requisição
         $response = $next($request);
-
-        // Calcular tempo de execução
+        
         $executionTime = microtime(true) - $startTime;
 
-        // Registrar informações da requisição
         Log::channel('api')->info('API Request', [
             'method' => $request->method(),
             'url' => $request->fullUrl(),
@@ -39,7 +35,6 @@ class LogApiRequests
      */
     protected function sanitizeData(array $data): array
     {
-        // Remover campos sensíveis como senhas
         if (isset($data['password'])) {
             $data['password'] = '******';
         }

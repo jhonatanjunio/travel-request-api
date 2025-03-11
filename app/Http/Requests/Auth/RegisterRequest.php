@@ -50,10 +50,8 @@ class RegisterRequest extends FormRequest
     protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
     {
         $errors = $validator->errors();
-        
-        // Personaliza a mensagem de erro para password_confirmation
+
         if ($errors->has('password_confirmation') || $errors->has('password.confirmed')) {
-            // Remove mensagens existentes para evitar duplicação
             $errors->forget('password_confirmation');
             $errors->forget('password.confirmed');
             
@@ -77,7 +75,6 @@ class RegisterRequest extends FormRequest
      */
     protected function prepareForValidation()
     {
-        // Verifica se o campo password_confirmation está presente
         if (!$this->has('password_confirmation')) {
             $this->merge(['password_confirmation' => null]);
         }

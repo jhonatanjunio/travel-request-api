@@ -25,7 +25,6 @@ class NotificationService implements NotificationServiceInterface
     public function sendStatusChangeNotification(TravelRequest $travelRequest): void
     {
         try {
-            // Busca o usuário que fez a solicitação
             $user = User::find($travelRequest->user_id);
             
             if (!$user) {
@@ -33,7 +32,6 @@ class NotificationService implements NotificationServiceInterface
                 return;
             }
             
-            // Envia a notificação usando a classe TravelRequestStatusChanged
             $user->notify(new TravelRequestStatusChanged($travelRequest));
             
             Log::info("Notificação de mudança de status enviada para o usuário {$user->name} (ID: {$user->id})");

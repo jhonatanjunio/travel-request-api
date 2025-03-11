@@ -31,17 +31,14 @@ class TravelRequestServiceTest extends TestCase
     {
         parent::setUp();
 
-        // Criar mocks para as dependências
         $this->travelRequestRepository = Mockery::mock(TravelRequestInterface::class);
         $this->notificationService = Mockery::mock(NotificationServiceInterface::class);
         
-        // Instanciar o serviço com os mocks
         $this->travelRequestService = new TravelRequestService(
             $this->travelRequestRepository,
             $this->notificationService
         );
 
-        // Criar usuários para testes
         $this->user = Mockery::mock(User::class);
         $this->user->shouldReceive('getAttribute')->with('id')->andReturn(1);
         $this->user->shouldReceive('getAttribute')->with('name')->andReturn('Usuário Teste');

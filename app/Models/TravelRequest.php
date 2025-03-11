@@ -32,7 +32,6 @@ class TravelRequest extends Model
         'cancellation_rejected_at' => 'datetime',
     ];
 
-    // Constantes para os status
     public const STATUS_PENDING = 'requested';
     public const STATUS_APPROVED = 'approved';
     public const STATUS_CANCELED = 'canceled';
@@ -77,7 +76,6 @@ class TravelRequest extends Model
         return $this->status === self::STATUS_PENDING_CANCELLATION;
     }
 
-    // Método para gerar token único de cancelamento
     public function generateCancellationToken()
     {
         $this->cancellation_token = md5($this->id . time() . uniqid());
