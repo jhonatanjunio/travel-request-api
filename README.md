@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/jhonatanjunio/jhonatanjunio/blob/main/public/logo.png" alt="Travel Request API Logo" width="400">
+  <img src="https://github.com/jhonatanjunio/travel-request-api/blob/main/public/logo.png" alt="Travel Request API Logo" width="400">
 </p>
 
 <p align="center">
