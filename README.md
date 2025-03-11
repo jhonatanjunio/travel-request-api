@@ -316,7 +316,7 @@ O projeto utiliza um banco de dados separado para testes, garantindo que os dado
 
 3. Execute as migrações no banco de dados de testes:
    ```bash
-   docker compose exec travel-request php artisan migrate --env=testing
+   docker compose exec travel-request-api php artisan migrate --env=testing
    ```
 
 4. Verifique se o arquivo `phpunit.xml` está configurado para usar o ambiente de testes:
@@ -333,7 +333,7 @@ O projeto utiliza um banco de dados separado para testes, garantindo que os dado
 Para executar os testes automatizados, utilize o seguinte comando:
 
 ```bash
-docker compose exec travel-request php artisan test
+docker compose exec travel-request-api php artisan test
 ```
 
 A suíte de testes inclui 32 testes com 64 asserções, cobrindo todos os aspectos críticos da aplicação.
@@ -341,13 +341,13 @@ A suíte de testes inclui 32 testes com 64 asserções, cobrindo todos os aspect
 Para executar um grupo específico de testes:
 
 ```bash
-docker compose exec travel-request php artisan test --filter=TravelRequestServiceTest
+docker compose exec travel-request-api php artisan test --filter=TravelRequestServiceTest
 ```
 
 Para gerar um relatório de cobertura de código (requer Xdebug):
 
 ```bash
-docker compose exec travel-request php artisan test --coverage
+docker compose exec travel-request-api php artisan test --coverage
 ```
 
 ### Proteção do Banco de Dados de Desenvolvimento
@@ -367,7 +367,7 @@ if (DB::connection()->getDatabaseName() !== ':memory:') {
 Para garantir que os testes sejam executados no ambiente correto, sempre use o comando:
 
 ```bash
-docker compose exec travel-request php artisan test --env=testing
+docker compose exec travel-request-api php artisan test --env=testing
 ```
 
 ## Contribuição
