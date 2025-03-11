@@ -71,19 +71,19 @@ Certifique-se de que o Docker está instalado e em execução no seu sistema.
 docker compose up -d
 
 # Instalar dependências
-docker compose exec app composer install
+docker compose exec travel-request-api composer install
 
 # Gerar chave da aplicação
-docker compose exec app php artisan key:generate
+docker compose exec travel-request-api php artisan key:generate
 
 # Executar migrações e seeders para o banco de dados principal
-docker compose exec app php artisan migrate --seed
+docker compose exec travel-request-api php artisan migrate --seed
 
 # Criar o banco de dados de testes
 docker compose exec db mysql -u root -ptravel_password -e "CREATE DATABASE IF NOT EXISTS travel_management_testing;"
 
 # Executar migrações para o banco de dados de testes
-docker compose exec app php artisan migrate --env=testing
+docker compose exec travel-request-api php artisan migrate --env=testing
 ```
 
 ### Passo 4: Acessar a Aplicação
