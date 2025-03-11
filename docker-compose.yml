@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: travel-app
+    container_name: travel-request-api
     restart: unless-stopped
     working_dir: /var/www/
     volumes:
@@ -13,7 +13,7 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: travel-nginx
+    container_name: travel-request-nginx
     restart: unless-stopped
     ports:
       - "8000:80"
