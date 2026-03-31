@@ -36,4 +36,13 @@ class TravelRequestFactory extends Factory
             'cancellation_reason' => fake()->sentence(),
         ]);
     }
+
+    public function pendingCancellation(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => TravelRequestStatus::PendingCancellation,
+            'cancellation_reason' => fake()->sentence(),
+            'cancellation_requested_at' => now(),
+        ]);
+    }
 }

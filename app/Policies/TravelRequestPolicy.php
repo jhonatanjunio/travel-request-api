@@ -35,10 +35,18 @@ class TravelRequestPolicy
     }
 
     /**
-     * Only the owner can cancel their own request.
+     * Only the owner can cancel/request cancellation of their own request.
      */
     public function cancel(User $user, TravelRequest $travelRequest): bool
     {
         return $user->id === $travelRequest->user_id;
+    }
+
+    /**
+     * Only admins can approve/reject cancellation requests.
+     */
+    public function manageCancellation(User $user, TravelRequest $travelRequest): bool
+    {
+        return $user->isAdmin();
     }
 }

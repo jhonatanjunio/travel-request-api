@@ -23,6 +23,17 @@ Route::prefix('v1')->group(function () {
             Route::get('{travelRequest}', [TravelRequestController::class, 'show']);
             Route::patch('{travelRequest}', [TravelRequestController::class, 'updateStatus']);
             Route::post('{travelRequest}/cancel', [TravelRequestController::class, 'cancel']);
+
+            // Enhanced cancellation flow for approved requests
+            Route::post('{travelRequest}/request-cancellation', [TravelRequestController::class, 'requestCancellation']);
+            Route::post('{travelRequest}/confirm-cancellation', [TravelRequestController::class, 'confirmCancellation'])
+                ->name('travel-requests.confirm-cancellation');
+        });
+
+        // Admin cancellation management
+        Route::prefix('admin/travel-requests')->group(function () {
+            Route::post('{travelRequest}/approve-cancellation', [TravelRequestController::class, 'approveCancellation']);
+            Route::post('{travelRequest}/reject-cancellation', [TravelRequestController::class, 'rejectCancellation']);
         });
     });
 });

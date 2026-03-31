@@ -14,8 +14,17 @@ return new class extends Migration
             $table->string('destination');
             $table->date('departure_date');
             $table->date('return_date');
-            $table->enum('status', ['requested', 'approved', 'canceled'])->default('requested');
+            $table->enum('status', [
+                'requested',
+                'approved',
+                'canceled',
+                'awaiting_cancellation_confirmation',
+                'pending_cancellation',
+            ])->default('requested');
             $table->text('cancellation_reason')->nullable();
+            $table->string('cancellation_token')->nullable()->unique();
+            $table->timestamp('cancellation_requested_at')->nullable();
+            $table->timestamp('cancellation_confirmed_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

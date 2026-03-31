@@ -6,8 +6,10 @@ use App\DTOs\TravelRequestDTO;
 use App\DTOs\TravelRequestFilterDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TravelRequest\CancelTravelRequestRequest;
+use App\Http\Requests\TravelRequest\ConfirmCancellationRequest;
 use App\Http\Requests\TravelRequest\CreateTravelRequestRequest;
 use App\Http\Requests\TravelRequest\FilterTravelRequestsRequest;
+use App\Http\Requests\TravelRequest\RequestCancellationRequest;
 use App\Http\Requests\TravelRequest\UpdateTravelRequestStatusRequest;
 use App\Http\Resources\TravelRequestCollection;
 use App\Http\Resources\TravelRequestResource;
@@ -88,5 +90,54 @@ class TravelRequestController extends Controller
         return response()->json([
             'message' => __('messages.travel_request_canceled'),
         ]);
+    }
+
+    // ── Enhanced Cancellation Flow ──────────────────────────
+
+    public function requestCancellation(RequestCancellationRequest $request, TravelRequest $travelRequest): JsonResponse
+    {
+        $this->authorize('cancel', $travelRequest);
+
+        $result = $this->travelRequestService->initiateCancellation(
+            $travelRequest,
+            $request->validated('cancellation_reason'),
+        );
+
+        return response()->json($result);
+    }
+
+    public function confirmCancellation(ConfirmCancellationRequest $request, TravelRequest $travelRequest): JsonResponse
+    {
+        $this->authorize('cancel', $travelRequest);
+
+        $this->travelRequestService->confirmCancellation(
+            $travelRequest,
+            $request->validated('token'),
+        );
+
+        return response()->json([
+            'message' => __('messages.cancellation_confirmed'),
+        ]);
+    }
+
+    public function approveCancellation(TravelRequest $travelRequest): TravelRequestResource
+    {
+        $this->authorize('manageCancellation', $travelRequest);
+
+        $travelRequest = $this->travelRequestService->approveCancellation($travelRequest);
+
+        return new TravelRequestResource($travelRequest);
+    }
+
+    public function rejectCancellation(CancelTravelRequestRequest $request, TravelRequest $travelRequest): TravelRequestResource
+    {
+        $this->authorize('manageCancellation', $travelRequest);
+
+        $travelRequest = $this->travelRequestService->rejectCancellation(
+            $travelRequest,
+            $request->validated('cancellation_reason') ?? '',
+        );
+
+        return new TravelRequestResource($travelRequest);
     }
 }
