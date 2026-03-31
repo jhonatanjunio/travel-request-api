@@ -11,12 +11,13 @@ fi
 # Install dependencies
 echo "Installing dependencies..."
 if ! composer install --no-interaction --prefer-dist --optimize-autoloader; then
-    echo "WARNING: composer install failed. Trying without lock file..."
-    composer update --no-interaction --prefer-dist --optimize-autoloader || echo "WARNING: composer update also failed. Continuing..."
+    echo "WARNING: composer install failed. Trying update..."
+    composer update --no-interaction --prefer-dist --optimize-autoloader || true
 fi
 
 # Only proceed with artisan commands if vendor dir exists
 if [ -d "vendor" ] && [ -f "vendor/autoload.php" ]; then
+
     # Generate app key if not set
     if ! grep -q '^APP_KEY=base64' .env 2>/dev/null; then
         echo "Generating application key..."
@@ -29,12 +30,22 @@ if [ -d "vendor" ] && [ -f "vendor/autoload.php" ]; then
         php artisan jwt:secret --no-interaction --force || true
     fi
 
-    # Wait for MySQL to be ready
+    # Wait for MySQL using raw PHP connection test (avoids artisan bootstrap issues)
     echo "Waiting for database connection..."
     max_tries=30
     counter=0
     while [ $counter -lt $max_tries ]; do
-        if php artisan migrate:status > /dev/null 2>&1; then
+        if php -r "
+            \$c = @new mysqli(
+                getenv('DB_HOST') ?: 'db',
+                getenv('DB_USERNAME') ?: 'travel_user',
+                getenv('DB_PASSWORD') ?: 'travel_password',
+                getenv('DB_DATABASE') ?: 'travel_management',
+                (int)(getenv('DB_PORT') ?: 3306)
+            );
+            exit(\$c->connect_errno ? 1 : 0);
+        " 2>/dev/null; then
+            echo "Database connected!"
             break
         fi
         counter=$((counter + 1))
@@ -44,26 +55,24 @@ if [ -d "vendor" ] && [ -f "vendor/autoload.php" ]; then
 
     if [ $counter -lt $max_tries ]; then
         echo "Running migrations..."
-        php artisan migrate --force --no-interaction || true
+        php artisan migrate --force --no-interaction 2>&1 || echo "WARNING: Migration failed"
 
         # Seed if tables are empty
         user_count=$(php artisan tinker --execute='echo App\Models\User::count();' 2>/dev/null || echo "0")
         if [ "$user_count" = "0" ]; then
             echo "Seeding database..."
-            php artisan db:seed --force --no-interaction || true
+            php artisan db:seed --force --no-interaction 2>&1 || echo "WARNING: Seeding failed"
         fi
 
         # Setup testing database
         echo "Setting up testing database..."
-        php artisan migrate --env=testing --force --no-interaction 2>/dev/null || true
+        php artisan migrate --env=testing --force --no-interaction 2>&1 || true
     else
-        echo "WARNING: Database connection timeout. Run migrations manually."
+        echo "WARNING: Database connection timeout after $max_tries attempts."
     fi
 else
-    echo "WARNING: vendor directory not found. Run 'composer install' manually."
+    echo "WARNING: vendor directory not found."
 fi
 
 echo "Setup complete! Starting PHP-FPM..."
-
-# Start PHP-FPM (this must succeed or container exits)
 exec php-fpm
