@@ -3,21 +3,11 @@
 namespace App\Exceptions\TravelRequest;
 
 use Exception;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class TravelRequestNotFoundException extends Exception
 {
-    public function __construct(int $id, ?string $message = null)
+    public function __construct(int $id)
     {
-        $defaultMessage = "Pedido de viagem com ID {$id} não encontrado";
-        parent::__construct($message ?? $defaultMessage);
+        parent::__construct(__('messages.travel_request_not_found', ['id' => $id]));
     }
-
-    public function render(Request $request): JsonResponse
-    {
-        return response()->json([
-            'message' => $this->getMessage(),
-        ], 404);
-    }
-} 
+}

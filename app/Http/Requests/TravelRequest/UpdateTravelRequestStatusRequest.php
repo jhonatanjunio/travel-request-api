@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\TravelRequest;
 
+use App\Enums\TravelRequestStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateTravelRequestStatusRequest extends FormRequest
 {
@@ -14,18 +16,19 @@ class UpdateTravelRequestStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => 'required|string|in:approved,rejected,canceled,pending_cancellation',
-            'cancellation_reason' => 'required_if:status,canceled|nullable|string|max:255',
+            'status' => [
+                'required',
+                'string',
+                Rule::in([
+                    TravelRequestStatus::Approved->value,
+                    TravelRequestStatus::Canceled->value,
+                ]),
+            ],
         ];
     }
 
-    public function messages(): array
+    public function statusEnum(): TravelRequestStatus
     {
-        return [
-            'status.required' => 'O status é obrigatório',
-            'status.in' => 'O status deve ser aprovado, rejeitado, cancelado ou pendente de cancelamento',
-            'cancellation_reason.required_if' => 'O motivo do cancelamento é obrigatório quando o status é cancelado',
-            'cancellation_reason.max' => 'O motivo do cancelamento não pode ter mais que 255 caracteres',
-        ];
+        return TravelRequestStatus::from($this->validated('status'));
     }
-} 
+}
