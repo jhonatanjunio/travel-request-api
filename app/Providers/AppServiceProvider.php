@@ -2,38 +2,22 @@
 
 namespace App\Providers;
 
+use App\Repositories\Interfaces\TravelRequestInterface;
+use App\Repositories\TravelRequestRepository;
+use App\Services\Interfaces\NotificationServiceInterface;
+use App\Services\NotificationService;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Cache;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        $this->app->bind(
-            \App\Repositories\Interfaces\TravelRequestInterface::class,
-            \App\Repositories\TravelRequestRepository::class
-        );
-        
-        $this->app->bind(
-            \App\Services\Interfaces\NotificationServiceInterface::class,
-            \App\Services\NotificationService::class
-        );
+        $this->app->bind(TravelRequestInterface::class, TravelRequestRepository::class);
+        $this->app->bind(NotificationServiceInterface::class, NotificationService::class);
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        if (Cache::getDefaultDriver() === 'redis' || Cache::getDefaultDriver() === 'memcached') {
-            Cache::setDefaultCacheTime(600); // 10 minutos
-        }
-
-        if ($this->app->environment('local')) {
-            \URL::forceScheme('http');
-        }
+        //
     }
 }

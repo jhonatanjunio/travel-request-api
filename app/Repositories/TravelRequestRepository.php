@@ -3,39 +3,30 @@
 namespace App\Repositories;
 
 use App\DTOs\TravelRequestFilterDTO;
+use App\Exceptions\TravelRequest\TravelRequestNotFoundException;
 use App\Models\TravelRequest;
 use App\Repositories\Interfaces\TravelRequestInterface;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
-use App\Exceptions\TravelRequest\TravelRequestNotFoundException;
-use Illuminate\Support\Collection;
-use App\Exceptions\UnauthorizedActionException;
 
 class TravelRequestRepository implements TravelRequestInterface
 {
     protected const CACHE_PREFIX = 'travel_requests_';
-    protected array $cacheKeys = [];    
 
-    public function __construct()
+    public function __construct(
+        protected CacheRepository $cache,
+    ) {}
+
+    public function getAllWithFilters(TravelRequestFilterDTO $filters, int $userId, bool $isAdmin): LengthAwarePaginator
     {
-        $this->cacheKeys = [];
-    }
-
-    public function getAllWithFilters(TravelRequestFilterDTO $filters): LengthAwarePaginator
-    {
-        $userId = Auth::id();
-        $isAdmin = Auth::user()->isAdmin();
-
         $filterHash = md5(serialize($filters));
-        $cacheKey = self::CACHE_PREFIX . "list_user_{$userId}_admin_{$isAdmin}_filters_{$filterHash}";
-        $this->cacheKeys[] = $cacheKey;
+        $cacheKey = self::CACHE_PREFIX . "list_user_{$userId}_admin_" . ($isAdmin ? '1' : '0') . "_f_{$filterHash}";
 
-        return Cache::remember($cacheKey, env('CACHE_TTL', 600), function () use ($filters, $isAdmin) {
-            $query = TravelRequest::query();
+        return $this->cache->remember($cacheKey, $this->getCacheTtl(), function () use ($filters, $userId, $isAdmin) {
+            $query = TravelRequest::query()->with('user');
 
             if (!$isAdmin) {
-                $query->where('user_id', Auth::id());
+                $query->where('user_id', $userId);
             }
 
             if ($filters->status) {
@@ -59,89 +50,39 @@ class TravelRequestRepository implements TravelRequestInterface
     }
 
     public function create(array $data): TravelRequest
-    {        
+    {
         $travelRequest = TravelRequest::create($data);
-        $this->invalidateCache();
+        $this->invalidateListCache();
+
         return $travelRequest;
     }
 
     public function findById(int $id): TravelRequest
     {
-        $userId = Auth::id();
-        $isAdmin = Auth::user()->isAdmin();
-
-        $cacheKey = self::CACHE_PREFIX . "id_{$id}_user_{$userId}_admin_{$isAdmin}";
-        $this->cacheKeys[] = $cacheKey;
-
-        $exists = TravelRequest::where('id', $id)->exists();
-        if (!$exists) {
-            throw new TravelRequestNotFoundException($id);
-        }
-
-        $travelRequest = Cache::remember($cacheKey, env('CACHE_TTL', 600), function () use ($id, $userId, $isAdmin) {
-            $query = TravelRequest::query();
-            
-            if (!$isAdmin) {
-                $query->where('user_id', $userId);
-            }
-            
-            return $query->find($id);
-        });
+        $travelRequest = TravelRequest::find($id);
 
         if (!$travelRequest) {
-            throw new UnauthorizedActionException('Você não tem permissão para acessar esta solicitação');
+            throw new TravelRequestNotFoundException($id);
         }
 
         return $travelRequest;
     }
 
-    public function update(int $id, array $data): TravelRequest
+    public function update(TravelRequest $travelRequest, array $data): TravelRequest
     {
-        $travelRequest = $this->findById($id);
         $travelRequest->update($data);
-
-        Cache::forget(self::CACHE_PREFIX . "id_{$id}");
-        $this->invalidateCache();
+        $this->invalidateListCache();
 
         return $travelRequest->fresh();
     }
 
-
-
-    public function findByStatus(string $status): Collection
+    protected function getCacheTtl(): int
     {
-        $query = TravelRequest::where('status', $status);
-
-        if($status === TravelRequest::STATUS_PENDING_CANCELLATION) {
-            $query->where('cancellation_confirmed_at', null);
-        }
-        
-        return $query->with('user')->get();
-    }
-    
-    public function countUserCancellations(int $userId): int
-    {
-        return TravelRequest::where('user_id', $userId)
-            ->where('status', TravelRequest::STATUS_CANCELED)
-            ->count();
-    }
-    
-    public function countUserPendingCancellations(int $userId): int
-    {
-        return TravelRequest::where('user_id', $userId)
-            ->whereIn('status', [
-                TravelRequest::STATUS_PENDING_CANCELLATION,
-                TravelRequest::STATUS_AWAITING_CANCELLATION_CONFIRMATION
-            ])
-            ->count();
+        return (int) config('cache.ttl', 600);
     }
 
-    protected function invalidateCache(): void
+    protected function invalidateListCache(): void
     {
-        foreach ($this->cacheKeys as $key) {
-            Cache::forget($key);
-        }
-
-        $this->cacheKeys = [];
+        $this->cache->flush();
     }
 }
