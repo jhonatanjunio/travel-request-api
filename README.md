@@ -10,380 +10,228 @@
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License: MIT"></a>
 </p>
 
-# Travel Request API - Documentação
+# Travel Request API
 
-## Sobre o Projeto
+A Laravel microservice for managing corporate travel requests, featuring JWT authentication, role-based access control (user/admin), event-driven notifications and i18n support.
 
-Este projeto é uma API de gerenciamento de requisições de viagens desenvolvida com Laravel 12. A aplicação permite que usuários façam solicitações de viagens, visualizem suas requisições e solicitem cancelamentos. Administradores podem aprovar ou rejeitar requisições de viagens e solicitações de cancelamento.
+## Branches
 
-## Tecnologias Utilizadas
+This repository contains two versions:
 
-- **PHP 8.2+**
-- **Laravel 12**: Framework PHP moderno e robusto
-- **Laravel Sanctum**: Para autenticação via tokens
-- **Predis**: Cliente PHP para Redis
-- **Docker**: Para containerização da aplicação
-- **MySQL**: Banco de dados relacional
-- **Redis**: Para cache e filas
+| Branch | Description |
+|--------|-------------|
+| **`main`** | Strictly follows the challenge requirements — simplified 3-status flow, JWT auth, comprehensive tests |
+| **`feature/enhanced-cancellation`** | Everything from `main` plus an enhanced multi-step cancellation workflow for approved requests (see [Future Improvements](#future-improvements)) |
 
-## Requisitos
+## Technical Decisions
 
-- Docker e Docker Compose
+### Architecture
+
+The project follows a layered architecture (Controller -> Service -> Repository -> Model) with clear separation of concerns:
+
+- **Controllers** receive requests and delegate to the Service layer — no business logic
+- **Services** hold business rules and orchestrate operations
+- **Repositories** abstract data access via interfaces, enabling easy testing and swappable implementations
+- **DTOs** transfer data between layers with strong typing
+- **Policies** centralize authorization, separated from business logic
+- **Form Requests** isolate validation from controllers
+- **API Resources** standardize JSON responses
+- **Events + Listeners** decouple status change notifications via event-driven architecture
+
+### Authentication: JWT
+
+Implemented JWT authentication using [`php-open-source-saver/jwt-auth`](https://github.com/PHP-Open-Source-Saver/jwt-auth), as specified in the challenge requirements. Features:
+
+- Stateless token-based authentication
+- Token refresh endpoint for seamless session extension
+- Configurable TTL via environment variables (`JWT_TTL`, `JWT_REFRESH_TTL`)
+
+### Status Model
+
+The system uses 3 well-defined statuses via PHP Enum (`App\Enums\TravelRequestStatus`):
+
+| Status | Description |
+|--------|-------------|
+| `requested` | Request created, awaiting review |
+| `approved` | Request approved by administrator |
+| `canceled` | Request canceled |
+
+**Business rules:**
+- **Administrators** can update status to `approved` or `canceled` (challenge item 4)
+- **The requester cannot change** their own request's status via the status update endpoint
+- **The requester can cancel** their request via the dedicated `POST /cancel` endpoint, **only if status is `requested`** — fulfilling challenge item 5, which states that cancellation is only allowed when the request has not yet been approved
+- Each user can only view their own requests; administrators can view all
+
+### Internationalization (i18n)
+
+The API supports multiple languages via the `Accept-Language` header. The default language is **English**, with **Portuguese (pt-BR)** also available:
+
+```
+# English responses (default)
+Accept-Language: en
+
+# Portuguese responses
+Accept-Language: pt-BR
+```
+
+All messages are centralized in translation files (`lang/en/` and `lang/pt_BR/`), using Laravel's native localization system.
+
+### Event-Driven Notifications
+
+Status changes are handled through Laravel's event system:
+
+1. `TravelRequestStatusUpdated` event is dispatched when a status changes
+2. `SendTravelRequestNotification` listener (queued) sends the notification
+3. `TravelRequestStatusChanged` notification delivers via both **mail** and **database** channels
+
+This decoupled approach allows easy extension (webhooks, Slack notifications, etc.) without modifying the service layer.
+
+## Requirements
+
+- Docker and Docker Compose
 - Git
-- Postman (para testes de API)
 
-## Configuração do Projeto
+## Setup
 
-### Passo 1: Clonar o Repositório
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/jhonatanjunio/travel-request-api.git
 cd travel-request-api
 ```
 
-### Passo 2: Configurar o Ambiente
+### 2. Configure the environment
 
-1. Copie os arquivos de ambiente:
 ```bash
 cp .env.example .env
-cp .env.example .env.testing
 ```
 
-2. Configure as variáveis de ambiente no arquivo `.env` conforme necessário
-
-3. Configure o arquivo `.env.testing` para usar um banco de dados de teste separado:
-
-```
-DB_CONNECTION=mysql
-DB_HOST=db
-DB_PORT=3306
-DB_DATABASE=travel_management_testing
-DB_USERNAME=travel_user
-DB_PASSWORD=travel_password
-```
-
-### Passo 3: Iniciar com Docker
-
-Certifique-se de que o Docker está instalado e em execução no seu sistema.
+### 3. Start with Docker
 
 ```bash
-# Iniciar os containers
-docker compose up -d
+# Start containers
+docker compose up -d --build
 
-# Instalar dependências
+# Install dependencies
 docker compose exec travel-request-api composer install
 
-# Gerar chave da aplicação
+# Generate application key
 docker compose exec travel-request-api php artisan key:generate
 
-# Executar migrações e seeders para o banco de dados principal
+# Generate JWT secret
+docker compose exec travel-request-api php artisan jwt:secret
+
+# Run migrations and seeders
 docker compose exec travel-request-api php artisan migrate --seed
-
-# Criar o banco de dados de testes
-docker compose exec db mysql -u root -ptravel_password -e "CREATE DATABASE IF NOT EXISTS travel_management_testing;"
-
-# Executar migrações para o banco de dados de testes
-docker compose exec travel-request-api php artisan migrate --env=testing
 ```
 
-### Passo 4: Acessar a Aplicação
+### 4. Access the API
 
-A API estará disponível em: `http://localhost:8000/api/v1`
+The API will be available at: `http://localhost:8000/api/v1`
 
-## Usuários Pré-configurados
+## Environment Variables
 
-O sistema já vem com dois usuários pré-configurados para testes:
+Key variables in `.env.example`:
 
-1. **Administrador**:
-   - Email: admin@travelrequests.com
-   - Senha: admin123
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DB_HOST` | Database host | `db` |
+| `DB_DATABASE` | Database name | `travel_management` |
+| `APP_LOCALE` | Default language | `en` |
+| `JWT_TTL` | Token lifetime (minutes) | `60` |
+| `JWT_REFRESH_TTL` | Refresh window (minutes) | `20160` |
+| `MAIL_MAILER` | Mail driver | `log` |
+| `QUEUE_CONNECTION` | Queue driver | `database` |
 
-2. **Usuário Comum**:
-   - Email: user@travelrequests.com
-   - Senha: user123
+## Pre-configured Users
 
-## Arquitetura do Projeto
+| Role | Email | Password |
+|------|-------|----------|
+| Administrator | admin@travelrequests.com | admin123 |
+| Regular User | user@travelrequests.com | user123 |
 
-Este projeto foi desenvolvido seguindo uma arquitetura em camadas bem definidas, aplicando princípios SOLID e padrões de design que promovem a manutenibilidade, testabilidade e escalabilidade do código.
+## API Endpoints
 
-### Estrutura de Camadas
+### Authentication
 
-1. **Controllers**: Responsáveis apenas por receber requisições, delegar processamento para camadas inferiores e retornar respostas.
-   - Implementados de forma enxuta, seguindo o princípio da Responsabilidade Única (SRP)
-   - Utilizam injeção de dependência para acessar serviços
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/v1/auth/register` | Register new user | No |
+| POST | `/api/v1/auth/login` | Login and get JWT token | No |
+| POST | `/api/v1/auth/logout` | Invalidate token | Yes |
+| GET | `/api/v1/auth/me` | Get authenticated user data | Yes |
+| POST | `/api/v1/auth/refresh` | Refresh JWT token | Yes |
 
-2. **Requests**: Classes dedicadas à validação de dados de entrada
-   - Centralizam regras de validação, removendo essa responsabilidade dos controllers
-   - Permitem personalização de mensagens de erro
-   - Facilitam a reutilização de regras de validação
+### Travel Requests
 
-3. **Resources**: Transformam modelos em respostas JSON estruturadas
-   - Padronizam o formato de resposta da API
-   - Permitem controle granular sobre quais dados são expostos
-   - Facilitam versionamento da API
+| Method | Endpoint | Description | Auth | Role |
+|--------|----------|-------------|------|------|
+| GET | `/api/v1/travel-requests` | List requests (with filters) | Yes | All |
+| POST | `/api/v1/travel-requests` | Create travel request | Yes | All |
+| GET | `/api/v1/travel-requests/{id}` | Request details | Yes | Owner/Admin |
+| PATCH | `/api/v1/travel-requests/{id}` | Update status (approved/canceled) | Yes | Admin |
+| POST | `/api/v1/travel-requests/{id}/cancel` | Cancel own request | Yes | Owner |
 
-4. **Services**: Contêm a lógica de negócio da aplicação
-   - Implementam regras de negócio complexas
-   - Orquestram chamadas a múltiplos repositories quando necessário
-   - Garantem transações atômicas
+### Available Filters (GET /travel-requests)
 
-5. **Repositories**: Abstraem o acesso a dados
-   - Encapsulam queries e operações de banco de dados
-   - Facilitam a troca de fonte de dados sem impactar a lógica de negócio
-   - Melhoram a testabilidade através de mocks
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | string | Filter by status: `requested`, `approved`, `canceled` |
+| `destination` | string | Partial search by destination |
+| `start_date` | date | Start of creation date range |
+| `end_date` | date | End of creation date range |
+| `departure_date_start` | date | Start of departure date range |
+| `departure_date_end` | date | End of departure date range |
+| `per_page` | int | Items per page (1-100, default: 15) |
 
-6. **DTOs (Data Transfer Objects)**: Objetos para transferência de dados entre camadas
-   - Garantem tipagem forte
-   - Documentam contratos entre camadas
-   - Reduzem acoplamento
+## Postman Collection
 
-7. **Policies**: Centralizam lógica de autorização
-   - Separam regras de autorização da lógica de negócio
-   - Facilitam testes de autorização
-   - Permitem reutilização de regras em diferentes contextos
-
-8. **Providers**: Configuram serviços e bindings
-   - Centralizam configuração de dependências
-   - Facilitam a substituição de implementações
-   - Permitem configuração condicional baseada em ambiente
-
-9. **Exceptions**: Tratamento personalizado de erros
-   - Padronizam respostas de erro
-   - Melhoram a experiência do desenvolvedor ao consumir a API
-   - Facilitam o debugging
-
-### Princípios SOLID Aplicados
-
-1. **Single Responsibility Principle (SRP)**:
-   - Cada classe tem uma única responsabilidade
-   - Controllers delegam para services, que delegam para repositories
-
-2. **Open/Closed Principle (OCP)**:
-   - Uso de interfaces permite extensão sem modificação
-   - Novas funcionalidades são adicionadas através de novas classes
-
-3. **Liskov Substitution Principle (LSP)**:
-   - Implementações de interfaces são intercambiáveis
-   - Uso de type hints para garantir conformidade
-
-4. **Interface Segregation Principle (ISP)**:
-   - Interfaces pequenas e focadas
-   - Clientes dependem apenas de métodos que realmente utilizam
-
-5. **Dependency Inversion Principle (DIP)**:
-   - Dependências são injetadas, não instanciadas internamente
-   - Uso de abstrações (interfaces) em vez de implementações concretas
-
-### Vantagens da Arquitetura Adotada
-
-1. **Testabilidade**:
-   - Camadas bem definidas facilitam testes unitários
-   - Injeção de dependência permite mock de componentes
-   - Separação de responsabilidades reduz complexidade dos testes
-
-2. **Manutenibilidade**:
-   - Código organizado e previsível
-   - Mudanças localizadas em componentes específicos
-   - Baixo acoplamento entre componentes
-
-3. **Escalabilidade**:
-   - Facilidade para adicionar novas funcionalidades
-   - Possibilidade de escalar componentes individualmente
-   - Preparado para crescimento da base de código
-
-4. **Reutilização**:
-   - Componentes desacoplados podem ser reutilizados
-   - Lógica comum centralizada em services e repositories
-   - DTOs padronizam transferência de dados
-
-5. **Segurança**:
-   - Validação centralizada em requests
-   - Autorização centralizada em policies
-   - Tratamento consistente de erros
-
-### Possibilidades de Expansão
-
-A arquitetura adotada facilita diversas expansões futuras:
-
-1. **Microserviços**: A separação clara de responsabilidades facilita a extração de funcionalidades em microserviços independentes.
-
-2. **Múltiplas Interfaces**: Adicionar novas interfaces (CLI, webhooks, etc.) é simplificado pela separação entre controllers e lógica de negócio.
-
-3. **Versionamento de API**: A estrutura de resources facilita a criação de múltiplas versões da API.
-
-4. **Caching Inteligente**: A camada de repositories permite implementar estratégias de cache sem afetar a lógica de negócio.
-
-5. **Múltiplos Bancos de Dados**: A abstração de acesso a dados permite utilizar diferentes bancos para diferentes entidades.
-
-6. **Eventos e Filas**: A arquitetura facilita a implementação de processamento assíncrono e comunicação baseada em eventos.
-
-Esta arquitetura representa um equilíbrio entre complexidade e flexibilidade, adequada para aplicações empresariais que precisam evoluir ao longo do tempo, mantendo a qualidade e a manutenibilidade do código.
-
-## Documentação da API
-
-### Autenticação
-
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| POST | `/api/v1/auth/login` | Autenticar usuário e obter token |
-| POST | `/api/v1/auth/register` | Registrar novo usuário |
-| POST | `/api/v1/auth/logout` | Encerrar sessão (requer autenticação) |
-| GET | `/api/v1/auth/me` | Obter dados do usuário autenticado |
-
-### Rotas de Usuário (Autenticadas)
-
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| GET | `/api/v1/travel-requests` | Listar todas as requisições de viagem do usuário |
-| POST | `/api/v1/travel-requests` | Criar nova requisição de viagem |
-| GET | `/api/v1/travel-requests/{id}` | Visualizar detalhes de uma requisição específica |
-| POST | `/api/v1/travel-requests/{id}/initiate-cancellation` | Iniciar processo de cancelamento de uma requisição |
-| GET | `/api/v1/travel-requests/{id}/confirm-cancellation` | Confirmar cancelamento de requisição (via link) |
-
-### Rotas de Administrador (Autenticadas)
-
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| PUT | `/api/v1/travel-requests/{id}` | Atualizar status de uma requisição pendente |
-| GET | `/api/v1/admin/travel-requests/pending-cancellations` | Listar todas as solicitações de cancelamento pendentes |
-| GET | `/api/v1/admin/travel-requests/{id}/cancellation/review` | Revisar uma solicitação de cancelamento específica |
-| POST | `/api/v1/admin/travel-requests/{id}/approve-cancellation` | Aprovar solicitação de cancelamento |
-| POST | `/api/v1/admin/travel-requests/{id}/reject-cancellation` | Rejeitar solicitação de cancelamento |
-
-## Fluxo de Uso
-
-### Para Usuários Comuns:
-
-1. **Autenticação**: Faça login usando suas credenciais para obter um token de acesso.
-2. **Criar Requisição**: Crie uma nova requisição de viagem fornecendo os detalhes necessários.
-3. **Visualizar Requisições**: Consulte suas requisições existentes.
-4. **Cancelar Requisição**:
-   - Se a requisição estiver com status "requested" e a data de partida for futura, o cancelamento é automático.
-   - Se a requisição já estiver aprovada, será necessário iniciar um processo de cancelamento e confirmar através do link fornecido.
-
-### Para Administradores:
-
-1. **Autenticação**: Faça login com credenciais de administrador.
-2. **Gerenciar Requisições**: Aprove ou rejeite requisições de viagem pendentes.
-3. **Gerenciar Cancelamentos**: Visualize, aprove ou rejeite solicitações de cancelamento.
-
-## Coleção do Postman
-
-Uma coleção do Postman está disponível para facilitar os testes da API:
+A Postman collection is available for testing:
 [Travel Request API Collection](https://documenter.getpostman.com/view/2620805/2sAYk7S4V9)
 
-A coleção está configurada para gerenciar automaticamente os tokens de autenticação. Após fazer login, o token será aplicado automaticamente às requisições subsequentes dentro da mesma pasta.
+## Automated Tests
 
-### Como usar a coleção:
+The project includes a comprehensive test suite covering authentication, CRUD operations, filters, authorization, business rules, events and i18n.
 
-1. Importe a coleção no Postman
-2. Execute a requisição de login com as credenciais fornecidas
-3. Explore as demais rotas que estarão automaticamente autenticadas
-
-## Funcionalidades Implementadas
-
-- **Sistema de Autenticação**: Login, registro e gerenciamento de tokens
-- **Gerenciamento de Requisições de Viagem**: Criação, visualização e atualização
-- **Sistema de Cancelamento**: 
-  - Cancelamento automático para requisições pendentes
-  - Processo de solicitação de cancelamento para requisições aprovadas
-- **Painel Administrativo**: Gerenciamento de requisições e solicitações de cancelamento
-
-## Testes Automatizados
-
-A aplicação inclui uma suíte abrangente de testes automatizados para garantir a qualidade e a confiabilidade do código. Os testes foram implementados seguindo as melhores práticas de desenvolvimento orientado a testes (TDD) e utilizam o framework PHPUnit em conjunto com a biblioteca Mockery para mocking.
-
-### Configuração do Ambiente de Testes
-
-O projeto utiliza um banco de dados separado para testes, garantindo que os dados de desenvolvimento não sejam afetados durante a execução dos testes.
-
-#### Configuração do Banco de Dados de Testes
-
-1. O arquivo `.env.testing` contém as configurações específicas para o ambiente de testes:
-   ```
-   DB_CONNECTION=mysql
-   DB_HOST=db
-   DB_PORT=3306
-   DB_DATABASE=travel_management_testing
-   DB_USERNAME=travel_user
-   DB_PASSWORD=travel_password
-   ```
-
-2. Certifique-se de que o banco de dados de testes existe:
-   ```bash
-   docker compose exec db mysql -u root -ptravel_password -e "CREATE DATABASE IF NOT EXISTS travel_management_testing;"
-   ```
-
-3. Execute as migrações no banco de dados de testes:
-   ```bash
-   docker compose exec travel-request-api php artisan migrate --env=testing
-   ```
-
-4. Verifique se o arquivo `phpunit.xml` está configurado para usar o ambiente de testes:
-   ```xml
-   <php>
-       <env name="APP_ENV" value="testing"/>
-       <env name="DB_DATABASE" value="travel_management_testing"/>
-       <!-- outras configurações -->
-   </php>
-   ```
-
-### Executando os Testes
-
-Para executar os testes automatizados, utilize o seguinte comando:
+### Running Tests
 
 ```bash
+# Create test database (first time)
+docker compose exec db mysql -u root -ptravel_password -e "CREATE DATABASE IF NOT EXISTS travel_management_testing;"
+
+# Run migrations on test database
+docker compose exec travel-request-api php artisan migrate --env=testing
+
+# Run tests
 docker compose exec travel-request-api php artisan test
 ```
 
-A suíte de testes inclui 32 testes com 64 asserções, cobrindo todos os aspectos críticos da aplicação.
+### Test Coverage
 
-Para executar um grupo específico de testes:
+| Area | Tests |
+|------|-------|
+| Authentication | Register, login, logout, profile, token refresh, protected routes |
+| Creation | Valid fields, date validation, required fields |
+| Listing | Own requests, all (admin), filters, pagination, empty list |
+| Details | Own view, user isolation, admin access, 404 |
+| Status Update | Approval, cancellation (admin), non-admin block, requester block |
+| User Cancel | Cancel requested, block approved, block already canceled, block other user's |
+| Events | Event dispatched on change, no event when unchanged |
+| i18n | English default, Portuguese via Accept-Language |
+| Model | Enum cast, accessor, relationship, date casts, canCancel logic |
 
-```bash
-docker compose exec travel-request-api php artisan test --filter=TravelRequestServiceTest
-```
+## Future Improvements
 
-Para gerar um relatório de cobertura de código (requer Xdebug):
+A previous version of this project (available in the `feature/enhanced-cancellation` branch) includes an implementation of some of these features — I chose to simplify the main branch to strictly match the challenge scope while keeping the code clean and focused.
 
-```bash
-docker compose exec travel-request-api php artisan test --coverage
-```
+- **Cancellation of approved requests**: Multi-step flow where the requester can request cancellation of an already approved request (respecting a configurable time window, e.g., up to 2 days before departure). The request would transition through intermediate states (`awaiting_confirmation` -> `pending_cancellation`) with confirmation via signed URL/email token, and the administrator would approve or reject the cancellation. This logic was implemented in the previous version with dedicated Mailables (`CancellationRequested`, `CancellationApproved`, `CancellationRejected`), signed URLs, and per-user cancellation statistics
+- **Cancellation statistics**: Per-user cancellation metrics to assist managers in decision-making
+- **Webhooks**: Integration with external systems (ERP, corporate calendars) via real-time notifications
+- **Granular rate limiting**: Differentiated limits per endpoint and user role
+- **OpenAPI/Swagger documentation**: Automatic interactive API documentation generation
+- **Audit trail**: Log of all status changes with timestamp and responsible user
+- **Extended i18n**: Support for additional languages and full translation of Laravel validation messages
 
-### Proteção do Banco de Dados de Desenvolvimento
+## License
 
-Os testes são configurados para verificar se estão sendo executados no ambiente correto, evitando que o banco de dados de desenvolvimento seja afetado acidentalmente. Esta verificação é implementada nos testes através do seguinte código:
-
-```php
-if (DB::connection()->getDatabaseName() !== ':memory:') {
-    $currentDatabase = DB::connection()->getDatabaseName();
-    if (strpos($currentDatabase, 'testing') === false && strpos($currentDatabase, 'test') === false) {
-        $this->markTestSkipped('ATENÇÃO: Testes não executados para proteger o banco de dados de produção/desenvolvimento!');
-        return;
-    }
-}
-```
-
-Para garantir que os testes sejam executados no ambiente correto, sempre use o comando:
-
-```bash
-docker compose exec travel-request-api php artisan test --env=testing
-```
-
-## Contribuição
-
-Para contribuir com o projeto:
-
-1. Faça um fork do repositório
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
-3. Faça commit das suas alterações (`git commit -m 'Adiciona nova funcionalidade'`)
-4. Envie para o branch (`git push origin feature/nova-funcionalidade`)
-5. Abra um Pull Request
-
-## Licença
-
-Este projeto está licenciado sob a [Licença MIT](https://opensource.org/licenses/MIT).
-
----
-
-Desenvolvido como parte de um teste técnico, este projeto demonstra a implementação de uma API RESTful com Laravel 12, seguindo as melhores práticas de desenvolvimento e arquitetura de software.
+This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).

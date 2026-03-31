@@ -22,10 +22,9 @@ yarn-error.log
 /.vscode
 /.zed
 
-# Configuração do Xdebug
-.vscode/launch.json
-.vscode/tasks.json
-.vscode/settings.json
-.vscode/extensions.json
-
 composer.lock
+
+# Personal documents (do not commit)
+INTERVIEW_PREP.md
+challenge.md
+.omc/
