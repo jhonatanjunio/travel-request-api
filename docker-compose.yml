@@ -20,6 +20,8 @@ services:
     volumes:
       - ./:/var/www
       - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+    depends_on:
+      - travel-request-api
     networks:
       - travel_request_network
 
