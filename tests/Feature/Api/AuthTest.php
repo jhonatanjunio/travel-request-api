@@ -128,6 +128,23 @@ class AuthTest extends TestCase
         $this->getJson('/api/v1/travel-requests')->assertStatus(401);
     }
 
+    public function test_api_responds_in_english_by_default(): void
+    {
+        $response = $this->getJson('/api/v1/travel-requests');
+
+        $response->assertStatus(401)
+            ->assertJson(['message' => 'Unauthenticated.']);
+    }
+
+    public function test_api_responds_in_portuguese_when_requested(): void
+    {
+        $response = $this->withHeader('Accept-Language', 'pt-BR')
+            ->getJson('/api/v1/travel-requests');
+
+        $response->assertStatus(401)
+            ->assertJsonFragment(['message' => 'Não autenticado.']);
+    }
+
     public function test_user_can_refresh_token(): void
     {
         $user = User::factory()->create();

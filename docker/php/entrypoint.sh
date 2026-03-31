@@ -30,20 +30,20 @@ if [ -d "vendor" ] && [ -f "vendor/autoload.php" ]; then
         php artisan jwt:secret --no-interaction --force || true
     fi
 
-    # Wait for MySQL using raw PHP connection test (avoids artisan bootstrap issues)
+    # Wait for MySQL using PDO connection test
     echo "Waiting for database connection..."
     max_tries=30
     counter=0
     while [ $counter -lt $max_tries ]; do
         if php -r "
-            \$c = @new mysqli(
-                getenv('DB_HOST') ?: 'db',
-                getenv('DB_USERNAME') ?: 'travel_user',
-                getenv('DB_PASSWORD') ?: 'travel_password',
-                getenv('DB_DATABASE') ?: 'travel_management',
-                (int)(getenv('DB_PORT') ?: 3306)
-            );
-            exit(\$c->connect_errno ? 1 : 0);
+            try {
+                new PDO(
+                    'mysql:host=' . (getenv('DB_HOST') ?: 'db') . ';port=' . (getenv('DB_PORT') ?: '3306') . ';dbname=' . (getenv('DB_DATABASE') ?: 'travel_management'),
+                    getenv('DB_USERNAME') ?: 'travel_user',
+                    getenv('DB_PASSWORD') ?: 'travel_password'
+                );
+                exit(0);
+            } catch (Exception \$e) { exit(1); }
         " 2>/dev/null; then
             echo "Database connected!"
             break
