@@ -64,8 +64,9 @@ if [ -d "vendor" ] && [ -f "vendor/autoload.php" ]; then
             php artisan db:seed --force --no-interaction 2>&1 || echo "WARNING: Seeding failed"
         fi
 
-        # Setup testing database
+        # Setup testing database (uses .env.testing)
         echo "Setting up testing database..."
+        php artisan key:generate --env=testing --no-interaction 2>/dev/null || true
         php artisan migrate --env=testing --force --no-interaction 2>&1 || true
     else
         echo "WARNING: Database connection timeout after $max_tries attempts."

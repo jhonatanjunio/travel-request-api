@@ -205,15 +205,10 @@ The project includes a comprehensive test suite covering authentication, CRUD op
 ### Running Tests
 
 ```bash
-# Create test database (first time)
-docker compose exec db mysql -u root -ptravel_password -e "CREATE DATABASE IF NOT EXISTS travel_management_testing;"
-
-# Run migrations on test database
-docker compose exec travel-request-api php artisan migrate --env=testing
-
-# Run tests
 docker compose exec travel-request-api php artisan test
 ```
+
+The testing database (`travel_management_testing`) is created automatically by Docker on first boot, and migrations are applied by the entrypoint script using `.env.testing`.
 
 ### Test Coverage
 
