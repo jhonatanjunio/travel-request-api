@@ -87,6 +87,20 @@ class TravelRequestStatusTest extends TestCase
         $response->assertStatus(422)->assertJsonValidationErrors(['status']);
     }
 
+    public function test_admin_cannot_update_canceled_request(): void
+    {
+        $travelRequest = TravelRequest::factory()->canceled()->create(['user_id' => $this->user->id]);
+
+        $response = $this->withHeaders($this->authAs($this->admin))
+            ->patchJson("/api/v1/travel-requests/{$travelRequest->id}", ['status' => 'approved']);
+
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('travel_requests', [
+            'id' => $travelRequest->id,
+            'status' => 'canceled',
+        ]);
+    }
+
     // ── USER CANCEL ─────────────────────────────────────────
 
     public function test_user_can_cancel_own_requested_order(): void

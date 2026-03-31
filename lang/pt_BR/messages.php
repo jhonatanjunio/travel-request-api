@@ -11,6 +11,7 @@ return [
     'travel_request_not_found' => 'Pedido de viagem com ID :id não encontrado.',
     'cannot_cancel' => 'Não é possível cancelar este pedido. Apenas pedidos com status "solicitado" podem ser cancelados.',
     'unauthorized_action' => 'Ação não autorizada.',
+    'cannot_update_canceled' => 'Não é possível alterar um pedido de viagem cancelado.',
 
     // Validation
     'validation_failed' => 'Os dados fornecidos são inválidos.',

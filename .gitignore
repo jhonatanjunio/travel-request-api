@@ -21,10 +21,3 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
-
-composer.lock
-
-# Personal documents (do not commit)
-INTERVIEW_PREP.md
-challenge.md
-.omc/

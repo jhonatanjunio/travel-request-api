@@ -56,8 +56,18 @@ The system uses 3 well-defined statuses via PHP Enum (`App\Enums\TravelRequestSt
 | `approved` | Request approved by administrator |
 | `canceled` | Request canceled |
 
+**Status transitions:**
+
+```
+requested  ──→  approved   (admin)
+requested  ──→  canceled   (admin or owner via POST /cancel)
+approved   ──→  canceled   (admin only)
+canceled   ──→  (final state, no further transitions allowed)
+```
+
 **Business rules:**
 - **Administrators** can update status to `approved` or `canceled` (challenge item 4)
+- **Canceled requests cannot be modified** — any attempt to update a canceled request returns 403
 - **The requester cannot change** their own request's status via the status update endpoint
 - **The requester can cancel** their request via the dedicated `POST /cancel` endpoint, **only if status is `requested`** — fulfilling challenge item 5, which states that cancellation is only allowed when the request has not yet been approved
 - Each user can only view their own requests; administrators can view all
@@ -74,7 +84,7 @@ Accept-Language: en
 Accept-Language: pt-BR
 ```
 
-All messages are centralized in translation files (`lang/en/` and `lang/pt_BR/`), using Laravel's native localization system.
+All messages are centralized in translation files (`lang/en/` and `lang/pt_BR/`), using Laravel's native localization system. This applies globally — including the interactive API documentation at `/docs/api`, which automatically adapts to the browser's language preference.
 
 ### Event-Driven Notifications
 
@@ -177,9 +187,15 @@ Key variables in `.env.example`:
 | `departure_date_end` | date | End of departure date range |
 | `per_page` | int | Items per page (1-100, default: 15) |
 
-## Postman Collection
+## API Documentation
 
-A Postman collection is available for testing:
+Interactive API documentation is auto-generated and available at:
+
+**`http://localhost:8000/docs/api`**
+
+Powered by [Scramble](https://scramble.dedoc.co/) — automatically reads routes, form requests, and API resources to generate OpenAPI/Swagger documentation with zero manual annotations.
+
+A Postman collection is also available:
 [Travel Request API Collection](https://documenter.getpostman.com/view/2620805/2sAYk7S4V9)
 
 ## Automated Tests

@@ -43,6 +43,10 @@ class TravelRequestService
     {
         $oldStatus = $travelRequest->status;
 
+        if ($oldStatus === TravelRequestStatus::Canceled) {
+            throw new UnauthorizedActionException(__('messages.cannot_update_canceled'));
+        }
+
         $travelRequest = $this->repository->update($travelRequest, [
             'status' => $status,
         ]);

@@ -11,6 +11,7 @@ return [
     'travel_request_not_found' => 'Travel request with ID :id not found.',
     'cannot_cancel' => 'This request cannot be canceled. Only requests with status "requested" can be canceled.',
     'unauthorized_action' => 'Unauthorized action.',
+    'cannot_update_canceled' => 'Cannot update a canceled travel request.',
 
     // Validation
     'validation_failed' => 'The given data was invalid.',
