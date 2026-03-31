@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\TravelRequestStatus;
 use App\Models\TravelRequest;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -10,34 +11,29 @@ class TravelRequestFactory extends Factory
 {
     protected $model = TravelRequest::class;
 
-    public function definition()
+    public function definition(): array
     {
         return [
             'user_id' => User::factory(),
-            'destination' => $this->faker->city,
-            'departure_date' => $this->faker->dateTimeBetween('+1 week', '+2 weeks'),
-            'return_date' => $this->faker->dateTimeBetween('+3 weeks', '+4 weeks'),
-            'status' => 'requested',
+            'destination' => fake()->city(),
+            'departure_date' => fake()->dateTimeBetween('+1 week', '+2 weeks'),
+            'return_date' => fake()->dateTimeBetween('+3 weeks', '+4 weeks'),
+            'status' => TravelRequestStatus::Requested,
         ];
     }
 
-    public function approved()
+    public function approved(): static
     {
-        return $this->state(function (array $attributes) {
-            return [
-                'status' => 'approved',
-            ];
-        });
+        return $this->state(fn (array $attributes) => [
+            'status' => TravelRequestStatus::Approved,
+        ]);
     }
 
-    public function pendingCancellation()
+    public function canceled(): static
     {
-        return $this->state(function (array $attributes) {
-            return [
-                'status' => 'pending_cancellation',
-                'cancellation_reason' => $this->faker->sentence,
-                'cancellation_requested_at' => now(),
-            ];
-        });
+        return $this->state(fn (array $attributes) => [
+            'status' => TravelRequestStatus::Canceled,
+            'cancellation_reason' => fake()->sentence(),
+        ]);
     }
-} 
+}
