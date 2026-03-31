@@ -32,10 +32,10 @@ services:
     container_name: travel-db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: travel_management
-      MYSQL_ROOT_PASSWORD: travel_password
-      MYSQL_PASSWORD: travel_password
-      MYSQL_USER: travel_user
+      MYSQL_DATABASE: ${DB_DATABASE:-travel_management}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-travel_password}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-travel_password}
+      MYSQL_USER: ${DB_USERNAME:-travel_user}
     volumes:
       - dbdata:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
@@ -49,7 +49,7 @@ services:
     container_name: travel-phpmyadmin
     environment:
       PMA_HOST: db
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-travel_password}
     ports:
       - "8080:80"
     networks:
@@ -62,4 +62,4 @@ networks:
     driver: bridge
 
 volumes:
-  dbdata: 
+  dbdata:

@@ -233,8 +233,10 @@ class TravelRequestTest extends TestCase
         $response = $this->withHeaders($this->authAs($this->user))
             ->getJson("/api/v1/travel-requests/{$travelRequest->id}");
 
-        $response->assertOk()
-            ->assertJsonMissing(['cancellation_token'])
-            ->assertJsonMissing(['deleted_at']);
+        $response->assertOk();
+
+        $data = $response->json('data');
+        $this->assertArrayNotHasKey('deleted_at', $data);
+        $this->assertArrayNotHasKey('password', $data);
     }
 }

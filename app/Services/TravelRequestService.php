@@ -34,11 +34,6 @@ class TravelRequestService
         ]);
     }
 
-    public function getTravelRequestById(int $id): TravelRequest
-    {
-        return $this->repository->findById($id);
-    }
-
     public function updateTravelRequestStatus(TravelRequest $travelRequest, TravelRequestStatus $status): TravelRequest
     {
         $oldStatus = $travelRequest->status;

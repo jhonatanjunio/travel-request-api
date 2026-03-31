@@ -237,7 +237,6 @@ A previous version of this project (available in the `feature/enhanced-cancellat
 - **Cancellation statistics**: Per-user cancellation metrics to assist managers in decision-making
 - **Webhooks**: Integration with external systems (ERP, corporate calendars) via real-time notifications
 - **Granular rate limiting**: Differentiated limits per endpoint and user role
-- **OpenAPI/Swagger documentation**: Automatic interactive API documentation generation
 - **Audit trail**: Log of all status changes with timestamp and responsible user
 - **Extended i18n**: Support for additional languages and full translation of Laravel validation messages
 

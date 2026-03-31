@@ -19,7 +19,7 @@ class TravelRequestCollection extends ResourceCollection
      * @param  \Illuminate\Http\Request  $request
      * @return array
      */
-    public function toArray($request)
+    public function toArray(\Illuminate\Http\Request $request): array
     {
         return [
             'data' => $this->collection,
