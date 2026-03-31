@@ -26,8 +26,11 @@ COPY . .
 
 RUN echo "xdebug.mode=coverage" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
+COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 RUN chown -R www-data:www-data /var/www
 
 EXPOSE 9000
 
-CMD ["php-fpm"] 
+ENTRYPOINT ["entrypoint.sh"]

@@ -91,43 +91,36 @@ This decoupled approach allows easy extension (webhooks, Slack notifications, et
 - Docker and Docker Compose
 - Git
 
-## Setup
-
-### 1. Clone the repository
+## Quick Start
 
 ```bash
 git clone https://github.com/jhonatanjunio/travel-request-api.git
 cd travel-request-api
-```
-
-### 2. Configure the environment
-
-```bash
-cp .env.example .env
-```
-
-### 3. Start with Docker
-
-```bash
-# Start containers
 docker compose up -d --build
-
-# Install dependencies
-docker compose exec travel-request-api composer install
-
-# Generate application key
-docker compose exec travel-request-api php artisan key:generate
-
-# Generate JWT secret
-docker compose exec travel-request-api php artisan jwt:secret
-
-# Run migrations and seeders
-docker compose exec travel-request-api php artisan migrate --seed
 ```
 
-### 4. Access the API
+That's it. The Docker entrypoint automatically handles:
+- Copying `.env.example` to `.env`
+- Installing Composer dependencies
+- Generating application key and JWT secret
+- Waiting for MySQL to be ready
+- Running migrations and seeders
+- Setting up the testing database
 
-The API will be available at: `http://localhost:8000/api/v1`
+The API will be available at: **`http://localhost:8000/api/v1`**
+
+> **Note:** The first `docker compose up --build` may take a few minutes while dependencies are installed. Check progress with `docker compose logs -f travel-request-api`.
+
+### Makefile Commands
+
+| Command | Description |
+|---------|-------------|
+| `make setup` | Full setup from scratch (build + start + test) |
+| `make test` | Run test suite |
+| `make fresh` | Reset database with fresh migrations + seed |
+| `make logs` | Follow container logs |
+| `make shell` | Open shell in PHP container |
+| `make stop` | Stop containers |
 
 ## Environment Variables
 
